@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Kalam — a place to write</title>
+<meta name="description" content="A simple personal blog for writing and publishing posts." />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#EDE8DC;
+    --card:#F6F2E8;
+    --ink:#232A44;
+    --gold:#C9A227;
+    --muted:#8B8778;
+    --border:#D9D2BF;
+    --text:#2E2C24;
+    --danger:#A8412F;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--paper);
+    font-family:'IBM Plex Sans', sans-serif;
+    color:var(--text);
+  }
+  .wrap{max-width:720px;margin:0 auto;padding:40px 24px 80px;}
+  header{display:flex;align-items:center;justify-content:space-between;margin-bottom:40px;}
+  .logo{display:flex;align-items:center;gap:8px;cursor:pointer;background:none;border:none;}
+  .logo-text{font-family:'Fraunces',serif;font-size:26px;color:var(--ink);letter-spacing:-0.5px;}
+  .logo-badge{font-family:'IBM Plex Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:1px;background:var(--gold);color:var(--paper);padding:2px 6px;border-radius:4px;}
+  button{cursor:pointer;font-family:'IBM Plex Sans',sans-serif;}
+  .btn-primary{display:inline-flex;align-items:center;gap:6px;background:var(--ink);color:var(--paper);border:none;padding:10px 18px;border-radius:999px;font-size:14px;font-weight:500;transition:transform .15s ease;}
+  .btn-primary:hover{transform:translateY(-2px);}
+  .btn-gold{display:inline-flex;align-items:center;gap:6px;background:var(--gold);color:var(--ink);border:none;padding:10px 20px;border-radius:999px;font-size:14px;font-weight:600;transition:transform .15s ease;}
+  .btn-gold:hover:not(:disabled){transform:translateY(-2px);}
+  .btn-gold:disabled{opacity:.4;cursor:not-allowed;}
+  .btn-ghost{display:inline-flex;align-items:center;gap:6px;background:none;border:none;color:var(--muted);font-size:14px;}
+  .btn-danger{display:inline-flex;align-items:center;gap:6px;background:none;border:none;color:var(--danger);font-size:14px;}
+  .empty{border:1px solid var(--border);border-radius:16px;padding:56px 32px;text-align:center;}
+  .empty h2{font-family:'Fraunces',serif;color:var(--ink);font-size:22px;margin:12px 0 6px;}
+  .empty p{color:var(--muted);font-size:14px;margin-bottom:24px;}
+  .post-card{position:relative;cursor:pointer;border-radius:16px;border:1px solid var(--border);background:var(--card);box-shadow:3px 3px 0 var(--border);padding:20px 24px;margin-bottom:16px;transition:transform .15s ease;}
+  .post-card:hover{transform:translateY(-2px);}
+  .post-card-top{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:6px;}
+  .post-card h3{font-family:'Fraunces',serif;font-weight:600;font-size:20px;color:var(--ink);margin:0;}
+  .post-num{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);flex-shrink:0;}
+  .post-excerpt{font-size:14px;color:var(--text);margin:0 0 12px;line-height:1.5;}
+  .post-meta{display:flex;gap:16px;flex-wrap:wrap;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);}
+  input, textarea{width:100%;background:transparent;border:none;outline:none;color:var(--text);font-family:'IBM Plex Sans',sans-serif;}
+  .title-input{font-family:'Fraunces',serif;font-size:30px;font-weight:600;color:var(--ink);margin-bottom:14px;}
+  .title-input::placeholder{opacity:.4;}
+  .tags-input{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted);margin-bottom:14px;}
+  .tags-input::placeholder{opacity:.5;}
+  .body-input{font-size:15px;line-height:1.7;resize:vertical;min-height:280px;}
+  .body-input::placeholder{opacity:.4;}
+  .editor-footer{display:flex;justify-content:space-between;align-items:center;padding-top:16px;margin-top:10px;border-top:1px solid var(--border);}
+  .save-note{text-align:right;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);margin-top:8px;}
+  .post-title{font-family:'Fraunces',serif;font-weight:600;font-size:30px;color:var(--ink);margin:0 0 8px;}
+  .post-meta-row{display:flex;gap:16px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);margin-bottom:24px;}
+  .post-body{font-size:16px;line-height:1.75;white-space:pre-wrap;margin-bottom:28px;}
+  svg{display:inline-block;vertical-align:middle;}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+
+<script>
+const STORAGE_KEY = "kalam:posts";
+let posts = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+let view = "home"; // home | editor | post
+let activeId = null;
+let draft = { title: "", tags: "", body: "" };
+
+const icon = {
+  pen: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>`,
+  plus: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>`,
+  back: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>`,
+  clock: `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>`,
+  tag: `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41 11 3.83A2 2 0 0 0 9.59 3.24L4 3a1 1 0 0 0-1 1l.24 5.59a2 2 0 0 0 .59 1.41l9.58 9.59a2 2 0 0 0 2.83 0l4.35-4.35a2 2 0 0 0 0-2.83Z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>`,
+  trash: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14Z"/></svg>`,
+  send: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>`,
+};
+
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+function formatDate(ts){ return new Date(ts).toLocaleDateString(undefined,{year:"numeric",month:"long",day:"numeric"}); }
+function readTime(text){ const w = text.trim().split(/\s+/).filter(Boolean).length; return Math.max(1, Math.round(w/200)); }
+function escapeHtml(s){ return s.replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function persist(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(posts)); }
+
+function setView(v){ view = v; render(); }
+function startNewPost(){ draft = {title:"", tags:"", body:""}; activeId = null; setView("editor"); }
+function editPost(id){ const p = posts.find(x=>x.id===id); draft = {title:p.title, tags:p.tags.join(", "), body:p.body}; activeId = id; setView("editor"); }
+function openPost(id){ activeId = id; setView("post"); }
+
+function publish(){
+  const title = document.getElementById("d-title").value.trim();
+  const tagsRaw = document.getElementById("d-tags").value;
+  const body = document.getElementById("d-body").value;
+  if(!title || !body.trim()) return;
+  const tags = tagsRaw.split(",").map(t=>t.trim()).filter(Boolean);
+  if(activeId){
+    posts = posts.map(p => p.id===activeId ? {...p, title, tags, body, updatedAt: Date.now()} : p);
+  } else {
+    posts = [{id: uid(), title, tags, body, createdAt: Date.now(), updatedAt: Date.now()}, ...posts];
+  }
+  persist();
+  setView("home");
+}
+
+function deletePost(id){
+  posts = posts.filter(p=>p.id!==id);
+  persist();
+  setView("home");
+}
+
+function render(){
+  const app = document.getElementById("app");
+  let html = `<header>
+    <button class="logo" onclick="setView('home')">
+      <span class="logo-text">Kalam</span>
+      <span class="logo-badge">कलम</span>
+    </button>`;
+  if(view==="home"){
+    html += `<button class="btn-primary" onclick="startNewPost()">${icon.plus} New post</button>`;
+  } else {
+    html += `<button class="btn-ghost" onclick="setView('home')">${icon.back} Back</button>`;
+  }
+  html += `</header>`;
+
+  if(view==="home"){
+    if(posts.length===0){
+      html += `<div class="empty">
+        <h2>Nothing published yet</h2>
+        <p>Write your first post — it'll sit right here once you publish it.</p>
+        <button class="btn-primary" onclick="startNewPost()">Start writing</button>
+      </div>`;
+    } else {
+      posts.forEach((p,i)=>{
+        const excerpt = p.body.slice(0,160) + (p.body.length>160?"…":"");
+        html += `<article class="post-card" onclick="openPost('${p.id}')">
+          <div class="post-card-top">
+            <h3>${escapeHtml(p.title)}</h3>
+            <span class="post-num">${String(posts.length-i).padStart(2,"0")}</span>
+          </div>
+          <p class="post-excerpt">${escapeHtml(excerpt)}</p>
+          <div class="post-meta">
+            <span>${icon.clock} ${readTime(p.body)} min read</span>
+            <span>${formatDate(p.createdAt)}</span>
+            ${p.tags.length ? `<span>${icon.tag} ${escapeHtml(p.tags.join(", "))}</span>` : ""}
+          </div>
+        </article>`;
+      });
+    }
+  }
+
+  if(view==="editor"){
+    html += `
+      <input id="d-title" class="title-input" placeholder="Post title" value="${escapeHtml(draft.title)}" />
+      <input id="d-tags" class="tags-input" placeholder="Tags, comma separated (e.g. travel, nepal)" value="${escapeHtml(draft.tags)}" />
+      <textarea id="d-body" class="body-input" placeholder="Start writing…">${escapeHtml(draft.body)}</textarea>
+      <div class="editor-footer">
+        <div>${activeId ? `<button class="btn-danger" onclick="deletePost('${activeId}')">${icon.trash} Delete</button>` : ""}</div>
+        <button class="btn-gold" id="publish-btn" onclick="publish()">${icon.send} ${activeId ? "Save changes" : "Publish"}</button>
+      </div>`;
+  }
+
+  if(view==="post"){
+    const p = posts.find(x=>x.id===activeId);
+    if(p){
+      html += `
+        <article>
+          <h1 class="post-title">${escapeHtml(p.title)}</h1>
+          <div class="post-meta-row">
+            <span>${formatDate(p.createdAt)}</span>
+            <span>${icon.clock} ${readTime(p.body)} min read</span>
+            ${p.tags.length ? `<span>${escapeHtml(p.tags.join(", "))}</span>` : ""}
+          </div>
+          <div class="post-body">${escapeHtml(p.body)}</div>
+          <button class="btn-primary" onclick="editPost('${p.id}')">${icon.pen} Edit this post</button>
+        </article>`;
+    }
+  }
+
+  app.innerHTML = html;
+
+  if(view==="editor"){
+    const titleEl = document.getElementById("d-title");
+    const bodyEl = document.getElementById("d-body");
+    const btn = document.getElementById("publish-btn");
+    function updateBtn(){ btn.disabled = !titleEl.value.trim() || !bodyEl.value.trim(); }
+    titleEl.addEventListener("input", updateBtn);
+    bodyEl.addEventListener("input", updateBtn);
+    updateBtn();
+  }
+}
+
+render();
+</script>
+</body>
+</html>
